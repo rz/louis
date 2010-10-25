@@ -80,6 +80,9 @@ def install_postgres():
 
 
 def patch_virtualenv(user, package_path, virtualenv_path='env'):
+    """
+    Symlinks package_path in virtual env's site-packages.
+    """
     with settings(user=user):
         target = '/home/%s/%s/lib/python2.6/site-packages/' % (user, virtualenv_path)
         run('ln -s %s %s' % (package_path, target))
