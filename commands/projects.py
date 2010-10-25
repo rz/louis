@@ -89,7 +89,7 @@ def setup_project_code(project_name, project_username, git_url, branch='master')
                 run('git checkout %s' % branch)
 
 
-def setup_project_apache(project_name, project_username, server_name, server_alias, media_directory=None, branch='master'):
+def setup_project_apache(project_name, project_username, server_name, server_alias, django_settings, media_directory=None, branch='master'):
     """
     Configure apache-related settings for the project.
     
@@ -116,6 +116,7 @@ def setup_project_apache(project_name, project_username, server_name, server_ali
         'project_username': project_username,
         'server_name': server_name,
         'server_alias': server_alias,
+        'django_settings': django_settings,
         'branch': branch,
     }
     # apache config
@@ -145,7 +146,7 @@ def setup_project_apache(project_name, project_username, server_name, server_ali
         louis.commands.apache_reload()
 
 
-def setup_project(project_name, git_url, apache_server_name, apache_server_alias, project_username=None, branch='master', requirements_path=None):
+def setup_project(project_name, git_url, apache_server_name, apache_server_alias, django_settings, project_username=None, branch='master', requirements_path=None):
     """
     Creates a user for the project, checks out the code and does basic apache config.
     """
@@ -161,7 +162,9 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
     if not requirements_path:
         requirements_path = '%s/deploy/requirements.txt' % project_name
     install_project_requirements(project_username, requirements_path)
-    setup_project_apache(project_name, project_username, apache_server_name, apache_server_alias, branch=branch)
+    if not django_settings:
+        django_settings = 'production-settings'
+    setup_project_apache(project_name, project_username, apache_server_name, apache_server_alias, django_settings, branch=branch)
     print(green("""Project setup complete. You may need to patch the virtualenv
     to install things like mx. You may do so with the patch_virtualenv command."""))
 
