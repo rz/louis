@@ -112,9 +112,6 @@ def setup_project_apache(project_username, media_directory=None, branch='master'
         # apache config
         for config_path in sudo('find $PWD -name "*.apache2"').split('\n'):
             d, sep, config_filename = config_path.rpartition('/')
-            config_filename, dot, config_extension = config_filename.rpartition('.')
-            config_filename = '%s-%s.%s' % (config_filename, branch, config_extension)
-            print red(config_filename)
             with settings(warn_only=True):
                 check_config_file = sudo('[ -f /etc/apache2/sites-available/%s ]' % config_filename)
             if check_config_file.failed:
@@ -126,6 +123,29 @@ def setup_project_apache(project_username, media_directory=None, branch='master'
         print(red('Invalid apache configuration! The requested configuration was installed, but there is a problem with it.'))
     else:
         louis.commands.apache_reload()
+
+
+def setup_project(project_username, git_url, target_directory=None, branch='master'):
+    """
+    Creates a user for the project, checks out the code and does basic apache config.
+    """
+    setup_project_user(project_username)
+    print(green("Here is the project user's public key:"))
+    run('cat /home/%s/.ssh/id_rsa.pub' % project_username)
+    print(green("This script will attempt a `git clone` next."))
+    prompt(green("Press enter to continue."))
+    setup_project_code(project_username, git_url, target_directory, branch)
+    setup_project_virtualenv(project_username)
+    install_project_requirements(project_username)
+    if target_directory:
+        media_directory = '%s/media/' % target_directory
+        apache_config_path = '%s/deploy/%s.apache2' % (target_directory, project_username)
+        setup_project_apache(project_username, media_directory, apache_config_path, branch)
+    else:
+        setup_project_apache(project_username, branch=branch)
+    print(green("""Project setup complete. You may need to patch the virtualenv
+    to install things like mx. You may do so with the patch_virtualenv command.
+    """))
 
 
 def delete_project_code(project_username, target_directory=None):
@@ -156,26 +176,3 @@ def update_project(project_username, target_directory=None, branch='master', wsg
             run('git pull')
             run('git submodule update')
             run('touch %s' % wsgi_file_path)
-
-
-def setup_project(project_username, git_url, target_directory=None, branch='master'):
-    """
-    Creates a user for the project, checks out the code and does basic apache config.
-    """
-    setup_project_user(project_username)
-    print(green("Here is the project user's public key:"))
-    run('cat /home/%s/.ssh/id_rsa.pub' % project_username)
-    print(green("This script will attempt a `git clone` next."))
-    prompt(green("Press enter to continue."))
-    setup_project_code(project_username, git_url, target_directory, branch)
-    setup_project_virtualenv(project_username)
-    install_project_requirements(project_username)
-    if target_directory:
-        media_directory = '%s/media/' % target_directory
-        apache_config_path = '%s/deploy/%s.apache2' % (target_directory, project_username)
-        setup_project_apache(project_username, media_directory, apache_config_path, branch)
-    else:
-        setup_project_apache(project_username, branch=branch)
-    print(green("""Project setup complete. You may need to patch the virtualenv
-    to install things like mx. You may do so with the patch_virtualenv command.
-    """))
