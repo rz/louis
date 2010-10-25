@@ -166,17 +166,15 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
     to install things like mx. You may do so with the patch_virtualenv command."""))
 
 
-def delete_project_code(project_username, target_directory=None):
+def delete_project_code(project_name, project_username):
     """
     Deletes /home/project_username/target_directory/ target_directory defaults
     to project_username if not given ie /home/project/project/
     """
-    if not target_directory:
-        target_directory = project_username
-    sudo('rm -rf /home/%s/%s' % (project_username, target_directory))
+    sudo('rm -rf /home/%s/%s' % (project_username, project_name))
 
 
-def update_project(project_username, target_directory=None, branch='master', wsgi_file_path=None):
+def update_project(project_name, project_username=None, branch='master', wsgi_file_path=None):
     """
     Pull the latest source to a project deployed at target_directory. The
     target_directory is relative to project user's home dir. target_directory
@@ -184,12 +182,12 @@ def update_project(project_username, target_directory=None, branch='master', wsg
     The wsgi path is relative to the target directory and defaults to
     deploy/project_username.wsgi.
     """
-    if not target_directory:
-        target_directory = project_username
+    if not project_username:
+        project_username = '%s-%s' % (project_name, branch)
     if not wsgi_file_path:
-        wsgi_file_path = 'deploy/%s.wsgi' % project_username
+        wsgi_file_path = '/home/%s/%s.wsgi' % (project_username, project_username)
     with settings(user=project_username):
-        with cd('/home/%s/%s' % (project_username, target_directory)):
+        with cd('/home/%s/%s' % (project_username, project_name)):
             run('git checkout %s' % branch)
             run('git pull')
             run('git submodule update')
