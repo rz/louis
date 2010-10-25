@@ -94,35 +94,38 @@ def setup_project_code(project_username, git_url, target_directory=None, branch=
                 run('git checkout %s' % branch)
 
 
-def setup_project_apache(project_username, media_directory=None, apache_config_path=None, branch='master'):
+def setup_project_apache(project_username, media_directory=None, branch='master'):
     """
-    Configure apache-related settings for the project.
-    
+    Configure apache-related settings for the project. This will look for every 
+    *.apache2 file in the project user's home dir and attempt to enable it.
+
     media_directory should be relative to the project user's home directory. It
     defaults to project_username/media ie you'd end up with
     /home/project/project/media/
-    
-    apache_config_path should be relative to the project user's home directory.
-    it defaults to project_username/deploy/project_username.apache2
     """
     if not media_directory:
         media_directory = '%s/media/' % project_username
-    if not apache_config_path:
-        apache_config_path = '%s/deploy/%s.apache2' % (project_username, project_username)
     with cd('/home/%s' % project_username):
         # permissions for media/
         sudo('chgrp www-data -R %s' % media_directory)
         sudo('chmod g+w %s' % media_directory)
         # apache config
-        directory, sep, config_filename = apache_config_path.rpartition('/')
-        config_filename, dot, config_extension = config_filename.rpartition('.')
-        config_filename = '%s-%s.%s' % (config_filename, branch, config_extension)
-        with settings(warn_only=True):
-            check_config_file = sudo('[ -f /etc/apache2/sites-available/%s ]' % config_filename)
-        if check_config_file.failed:
-            sudo('ln -s $PWD/%s /etc/apache2/sites-available/%s' % (apache_config_path, config_filename))
-        sudo('a2ensite %s' % config_filename)
-    louis.commands.apache_reload()
+        for config_path in sudo('find $PWD -name "*.apache2"').split('\n'):
+            d, sep, config_filename = config_path.rpartition('/')
+            config_filename, dot, config_extension = config_filename.rpartition('.')
+            config_filename = '%s-%s.%s' % (config_filename, branch, config_extension)
+            print red(config_filename)
+            with settings(warn_only=True):
+                check_config_file = sudo('[ -f /etc/apache2/sites-available/%s ]' % config_filename)
+            if check_config_file.failed:
+                sudo('ln -s %s /etc/apache2/sites-available/%s' % (config_path, config_filename))
+                sudo('a2ensite %s' % config_filename)
+    with settings(warn_only=True):
+        check_config = sudo('apache2ctl configtest')
+    if check_config.failed:
+        print(red('Invalid apache configuration! The requested configuration was installed, but there is a problem with it.'))
+    else:
+        louis.commands.apache_reload()
 
 
 def delete_project_code(project_username, target_directory=None):
