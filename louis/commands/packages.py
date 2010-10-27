@@ -22,7 +22,7 @@ def install_debconf_seeds():
     for seed_file in conf.DEBCONF_SEEDS:
         directory, sep, seed_filename = seed_file.rpartition('/')
         print(green('Installing seed: %s' % seed_filename))
-        put(seed_filename, '/tmp/%s' % seed_filename)
+        put(seed_file, '/tmp/%s' % seed_filename)
         sudo('debconf-set-selections /tmp/%s' % seed_filename)
 
 
