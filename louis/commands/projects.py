@@ -146,7 +146,7 @@ def setup_project_apache(project_name, project_username, server_name, server_ali
         louis.commands.apache_reload()
 
 
-def setup_project(project_name, git_url, apache_server_name, apache_server_alias, django_settings, project_username=None, branch='master', requirements_path=None):
+def setup_project(project_name, git_url, apache_server_name, apache_server_alias, django_settings='production-settings', project_username=None, branch='master', requirements_path=None):
     """
     Creates a user for the project, checks out the code and does basic apache config.
     """
@@ -162,8 +162,6 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
     if not requirements_path:
         requirements_path = '%s/deploy/requirements.txt' % project_name
     install_project_requirements(project_username, requirements_path)
-    if not django_settings:
-        django_settings = 'production-settings'
     setup_project_apache(project_name, project_username, apache_server_name, apache_server_alias, django_settings, branch=branch)
     print(green("""Project setup complete. You may need to patch the virtualenv
     to install things like mx. You may do so with the patch_virtualenv command."""))
