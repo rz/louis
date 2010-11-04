@@ -175,7 +175,7 @@ def delete_project_code(project_name, project_username):
     sudo('rm -rf /home/%s/%s' % (project_username, project_name))
 
 
-def update_project(project_name, project_username=None, branch='master', wsgi_file_path=None):
+def update_project(project_name, project_username=None, branch='master', wsgi_file_path=None, settings='producion-settings'):
     """
     Pull the latest source to a project deployed at target_directory. The
     target_directory is relative to project user's home dir. target_directory
@@ -192,4 +192,5 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
             run('git checkout %s' % branch)
             run('git pull')
             run('git submodule update')
+            run('/home/%s/env/bin/python manage.py migrate --settings=%s' % (project_username, settings))
             run('touch %s' % wsgi_file_path)
