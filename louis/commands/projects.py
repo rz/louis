@@ -13,7 +13,7 @@ def setup_project_user(project_username):
     Create a crippled user to hold project-specific files.
     """
     with settings(warn_only=True):
-        check_user = sudo('grep -e "%s" /etc/passwd' % project_username)
+        check_user = sudo('grep -e "%s:" /etc/passwd' % project_username)
     if not check_user.failed:
         return
     sudo('adduser --gecos %s --disabled-password %s' % ((project_username,)*2))

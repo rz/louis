@@ -33,7 +33,7 @@ def create_user(username, ssh_key_path, shell='bash', admin=False):
     """
     # TODO: check if user exists and return if so
     with settings(warn_only=True):
-        if not sudo('grep %s /etc/passwd' % username).failed:
+        if not sudo('grep "%s:" /etc/passwd' % username).failed:
             return
     if admin:
         create_group('admin')
