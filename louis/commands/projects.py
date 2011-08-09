@@ -169,7 +169,8 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
     with cd('/home/%s/%s' % (project_username, project_name)):
         git_head = run('git rev-parse HEAD')
     with cd('/home/%s' % project_username):
-        log_text = 'Initial deploy on %s, HEAD: %s' % (datetime.now(), git_head)
+        local_user = local('whoami')
+        log_text = 'Initial deploy on %s by %s, HEAD: %s' % (datetime.now(), local_user, git_head)
         files.append(log_text, 'log/deploy.log')
 
     print(green("""Project setup complete. You may need to patch the virtualenv
@@ -192,6 +193,7 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
     The wsgi path is relative to the target directory and defaults to
     deploy/project_username.wsgi.
     """
+    local_user = local('whoami')
     if not project_username:
         project_username = '%s-%s' % (project_name, branch)
     if not wsgi_file_path:
@@ -205,5 +207,6 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
             run('touch %s' % wsgi_file_path)
             git_head = run('git rev-parse HEAD')
         with cd('/home/%s' % project_username):
-            log_text = 'Deploy on %s, HEAD: %s' % (datetime.now(), git_head)
+            local_user = local('whoami')
+            log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), local_user, git_head)
             files.append(log_text, 'log/deploy.log')
