@@ -1,5 +1,7 @@
 from __future__ import with_statement
 
+from datetime import datetime
+
 from fabric.api import run, put, sudo, env, cd, local, prompt, settings
 from fabric.contrib import files
 from fabric.colors import green, red
@@ -163,6 +165,12 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
         requirements_path = '%s/deploy/requirements.txt' % project_name
     install_project_requirements(project_username, requirements_path)
     setup_project_apache(project_name, project_username, apache_server_name, apache_server_alias, django_settings, branch=branch)
+
+    with cd('/home/%s/%s' % (project_username, project_name)):
+        git_head = run('git rev-parse HEAD')
+        log_text = 'Initial deploy on %s, HEAD: %s' % (datetime.now(), git_head)
+        files.append(log_text, 'log/deploy.log')
+
     print(green("""Project setup complete. You may need to patch the virtualenv
     to install things like mx. You may do so with the patch_virtualenv command."""))
 
@@ -194,3 +202,6 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
             run('git submodule update')
             run('/home/%s/env/bin/python manage.py migrate --settings=%s' % (project_username, settings_module))
             run('touch %s' % wsgi_file_path)
+            git_head = run('git rev-parse HEAD')
+            log_text = 'Deploy on %s, HEAD: %s' % (datetime.now(), git_head)
+            files.append(log_text, 'log/deploy.log')
