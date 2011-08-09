@@ -152,6 +152,7 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
     """
     Creates a user for the project, checks out the code and does basic apache config.
     """
+    local_user = local('whoami')
     if not project_username:
         project_username =  '%s-%s' % (project_name, branch)
     setup_project_user(project_username)
@@ -169,7 +170,6 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
     with cd('/home/%s/%s' % (project_username, project_name)):
         git_head = run('git rev-parse HEAD')
     with cd('/home/%s' % project_username):
-        local_user = local('whoami')
         log_text = 'Initial deploy on %s by %s, HEAD: %s' % (datetime.now(), local_user, git_head)
         files.append(log_text, 'log/deploy.log')
 
@@ -207,6 +207,6 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
             run('touch %s' % wsgi_file_path)
             git_head = run('git rev-parse HEAD')
         with cd('/home/%s' % project_username):
-            local_user = local('whoami')
+
             log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), local_user, git_head)
             files.append(log_text, 'log/deploy.log')
