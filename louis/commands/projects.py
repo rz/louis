@@ -185,7 +185,7 @@ def delete_project_code(project_name, project_username):
     sudo('rm -rf /home/%s/%s' % (project_username, project_name))
 
 
-def update_project(project_name, project_username=None, branch='master', wsgi_file_path=None, settings_module='production-settings'):
+def update_project(project_name, project_username=None, branch='master', wsgi_file_path=None, settings_module='production-settings', update_requirements=True):
     """
     Pull the latest source to a project deployed at target_directory. The
     target_directory is relative to project user's home dir. target_directory
@@ -199,14 +199,16 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
     if not wsgi_file_path:
         wsgi_file_path = '/home/%s/%s.wsgi' % (project_username, project_username)
     with settings(user=project_username):
-        with cd('/home/%s/%s' % (project_username, project_name)):
+        project_dir = '/home/%s/%s' % (project_username, project_name)
+        with cd(project_dir):
             run('git checkout %s' % branch)
             run('git pull')
             run('git submodule update')
             run('/home/%s/env/bin/python manage.py migrate --settings=%s' % (project_username, settings_module))
+            if update_requirements:
+                install_project_requirements(project_username, '%s/deploy/requirements.txt' % project_dir)
             run('touch %s' % wsgi_file_path)
             git_head = run('git rev-parse HEAD')
         with cd('/home/%s' % project_username):
-
             log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), local_user, git_head)
             files.append(log_text, 'log/deploy.log')
