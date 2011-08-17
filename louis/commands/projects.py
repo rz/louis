@@ -204,7 +204,7 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
             run('git checkout %s' % branch)
             run('git pull')
             run('git submodule update')
-            run('/home/%s/env/bin/python manage.py migrate --settings=%s' % (project_username, settings_module))
+            run('/home/%s/env/bin/python manage.py migrate --merge --settings=%s' % (project_username, settings_module))
             if update_requirements:
                 install_project_requirements(project_username, '%s/deploy/requirements.txt' % project_dir)
             run('touch %s' % wsgi_file_path)
