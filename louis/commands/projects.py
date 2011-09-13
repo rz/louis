@@ -28,8 +28,8 @@ def setup_project_user(project_username):
         # so that we don't get a yes/no prompt when checking out repos via ssh
         files.append(['Host *', 'StrictHostKeyChecking no'], '.ssh/config')
         run('mkdir log')
-        sudo('chmod 770 log')
-        sudo('chown %s:www-data log' % project_username)
+    sudo('chmod 770 /home/%s/log' % project_username)
+    sudo('chown %s:www-data /home/%s/log' % (project_username, project_username))
 
 
 def setup_project_virtualenv(project_username, target_directory='env', site_packages=False):
