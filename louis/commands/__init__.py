@@ -12,6 +12,7 @@ def init_server(apache=True, postgres=True):
     """
     setup_hosts()
     update()
+    set_timezone()
     install_debconf_seeds()
     install_basic_packages()
     config_apticron()
@@ -43,6 +44,10 @@ def setup_hosts():
     sudo("hostname %s" % env.hostname)
     sudo('echo "%s" > /etc/hostname' % env.hostname)
 
+
+def set_timezone(tz_file_path='/usr/share/zoneinfo/Etc/UTC', tz_config_path='/etc/localtime'):
+    if files.exists(tz_file_path):
+        sudo('cp %s %s' %(tz_file_path, tz_config_path))
 
 def apache_reload():
     """
