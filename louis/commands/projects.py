@@ -26,8 +26,9 @@ def setup_project_user(project_username):
         run('mkdir -p .ssh')
         run('ssh-keygen -t rsa -f .ssh/id_rsa -N ""')
         # so that we don't get a yes/no prompt when checking out repos via ssh
-        files.append(['Host *', 'StrictHostKeyChecking no'], '.ssh/config')
+        files.append('.ssh/config', ['Host *', 'StrictHostKeyChecking no'])
         run('mkdir log')
+    with cd('/home/%s/' % project_username):
         sudo('chmod 770 log')
         sudo('chown %s:www-data log' % project_username)
 
@@ -124,7 +125,8 @@ def setup_project_apache(project_name, project_username, server_name, server_ali
         'branch': branch,
     }
     # apache config
-    for config_path in local('find $PWD -name "*.apache2"').split('\n'):
+    apache_files = local('find . -name "*.apache2"', capture=True)
+    for config_path in apache_files.split('\n'):
         d, sep, config_filename = config_path.rpartition('/')
         config_filename, dot, ext = config_filename.rpartition('.')
         config_filename = '%s-%s.%s' % (config_filename, branch, ext)
@@ -133,7 +135,8 @@ def setup_project_apache(project_name, project_username, server_name, server_ali
             files.upload_template(config_path, dest_path, context=context, use_sudo=True)
             sudo('a2ensite %s' % config_filename)
     # wsgi file
-    for wsgi_path in local('find $PWD -name "*.wsgi"').split('\n'):
+    wsgi_files = local('find . -name "*.wsgi"', capture=True)
+    for wsgi_path in wsgi_files.split('\n'):
         d, sep, wsgi_filename = wsgi_path.rpartition('/')
         wsgi_filename, dot, ext = wsgi_filename.rpartition('.')
         wsgi_filename = '%s-%s.%s' % (wsgi_filename, branch, ext)
@@ -142,6 +145,7 @@ def setup_project_apache(project_name, project_username, server_name, server_ali
             files.upload_template(wsgi_path, dest_path, use_sudo=True, context=context)
             sudo('chown %s:%s %s' % (project_username, 'www-data', dest_path))
             sudo('chmod 755 %s' % dest_path)
+    sudo('a2enmod rewrite')
     with settings(warn_only=True):
         check_config = sudo('apache2ctl configtest')
     if check_config.failed:
@@ -169,11 +173,17 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
     install_project_requirements(project_username, requirements_path)
     setup_project_apache(project_name, project_username, apache_server_name, apache_server_alias, django_settings, branch=branch)
 
+    with cd('/home/%s/%s/deploy/logrotate/' % (project_username, project_name)):
+        sudo('cat apache2 >> /etc/logrotate.d/apache2')
+
+    sudo('chown -R %s:www-data /home/%s/log' % (project_username, project_username))
+    sudo('chmod -R 770 /home/%s/log' % project_username)
+
     with cd('/home/%s/%s' % (project_username, project_name)):
         git_head = run('git rev-parse HEAD')
     with cd('/home/%s' % project_username):
         log_text = 'Initial deploy on %s by %s, HEAD: %s' % (datetime.now(), local_user, git_head)
-        files.append(log_text, 'log/deploy.log')
+        files.append('log/deploy.log', log_text, use_sudo=True)
 
     print(green("""Project setup complete. You may need to patch the virtualenv
     to install things like mx. You may do so with the patch_virtualenv command."""))
@@ -211,6 +221,7 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
                 install_project_requirements(project_username, '%s/deploy/requirements.txt' % project_dir)
             run('touch %s' % wsgi_file_path)
             git_head = run('git rev-parse HEAD')
+            run('crontab deploy/crontab')
         with cd('/home/%s' % project_username):
             log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), local_user, git_head)
             files.append(log_text, 'log/deploy.log')
