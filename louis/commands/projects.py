@@ -184,11 +184,7 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
         git_head = run('git rev-parse HEAD')
     with cd('/home/%s' % project_username):
         log_text = 'Initial deploy on %s by %s, HEAD: %s' % (datetime.now(), local_user, git_head)
-<<<<<<< HEAD
         files.append('log/deploy.log', log_text, use_sudo=True)
-=======
-        files.append('log/deploy.log', log_text)
->>>>>>> bfa8ff5f02daec58674d022df28de6853dfecba1
 
     print(green("""Project setup complete. You may need to patch the virtualenv
     to install things like mx. You may do so with the patch_virtualenv command."""))
