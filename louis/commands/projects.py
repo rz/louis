@@ -28,6 +28,7 @@ def setup_project_user(project_username):
         # so that we don't get a yes/no prompt when checking out repos via ssh
         files.append('.ssh/config', ['Host *', 'StrictHostKeyChecking no'])
         run('mkdir log')
+
     with cd('/home/%s/' % project_username):
         sudo('chmod 770 log')
         sudo('chown %s:www-data log' % project_username)
@@ -158,7 +159,7 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
     """
     Creates a user for the project, checks out the code and does basic apache config.
     """
-    local_user = local('whoami')
+    local_user = local('whoami', capture=True)
     if not project_username:
         project_username =  '%s-%s' % (project_name, branch)
     setup_project_user(project_username)
@@ -183,7 +184,11 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
         git_head = run('git rev-parse HEAD')
     with cd('/home/%s' % project_username):
         log_text = 'Initial deploy on %s by %s, HEAD: %s' % (datetime.now(), local_user, git_head)
+<<<<<<< HEAD
         files.append('log/deploy.log', log_text, use_sudo=True)
+=======
+        files.append('log/deploy.log', log_text)
+>>>>>>> bfa8ff5f02daec58674d022df28de6853dfecba1
 
     print(green("""Project setup complete. You may need to patch the virtualenv
     to install things like mx. You may do so with the patch_virtualenv command."""))
@@ -205,7 +210,7 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
     The wsgi path is relative to the target directory and defaults to
     deploy/project_username.wsgi.
     """
-    local_user = local('whoami')
+    local_user = local('whoami', capture=True)
     if not project_username:
         project_username = '%s-%s' % (project_name, branch)
     if not wsgi_file_path:
@@ -224,4 +229,4 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
             run('crontab deploy/crontab')
         with cd('/home/%s' % project_username):
             log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), local_user, git_head)
-            files.append(log_text, 'log/deploy.log')
+            files.append('log/deploy.log', log_text)
