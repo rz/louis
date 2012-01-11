@@ -9,7 +9,7 @@ def install_solr_schema(local_path='deploy/solr_home/conf/', dest_path='/etc/sol
     dest_file = os.path.join(dest_path, 'schema.xml')
     put(local_file, dest_file, use_sudo=True)
 
-def config_jetty(local_path='deploy/jetty', dest_path='/etc/default_jetty'):
+def config_jetty(local_path='deploy/jetty', dest_path='/etc/default/jetty'):
     put(local_path, dest_path, use_sudo=True)
     restart_jetty()
 
