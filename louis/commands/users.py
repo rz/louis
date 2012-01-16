@@ -62,6 +62,6 @@ def config_sudo():
     txt = ['# Members of the admin group may gain root privileges',
            '# They can run any command as root with no password',
            '%admin ALL=(ALL) NOPASSWD: ALL']
-    files.append(txt, '/etc/sudoers', use_sudo=True)
+    files.append('/etc/sudoers', txt, use_sudo=True)
 
 

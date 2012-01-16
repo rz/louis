@@ -3,6 +3,7 @@ from louis.commands.users import *
 from louis.commands.projects import *
 from louis.commands.projects import *
 from louis.commands.databases import *
+from louis.commands.solr import *
 from louis import conf
 
 
@@ -39,7 +40,7 @@ def setup_hosts():
     #import re
     #assert(re.search(r'^(\d{0,3}\.){3}\d{0,3}$', env.host) is not None)
     #files.append("%(host)s\t%(hostname)s" % env, '/etc/hosts', use_sudo=True)
-    files.append("127.0.1.1\t%s" % env.hostname, '/etc/hosts', use_sudo=True)
+    files.append('/etc/hosts', "127.0.1.1\t%s" % env.hostname, use_sudo=True)
     sudo("hostname %s" % env.hostname)
     sudo('echo "%s" > /etc/hostname' % env.hostname)
 
