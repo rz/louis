@@ -9,7 +9,8 @@ def create_postgres_user(username, password):
     """
     Creates a plain postgres user: nosuperuser, nocreaterole, createdb.
     """
-    psql_string = 'CREATE ROLE "%s" PASSWORD "%s" NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;' % (username, password)
+    psql_string = 'CREATE ROLE %s PASSWORD \'%s\' NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;' % (username, password)
+
     sudo('echo "%s" | psql' % psql_string, user='postgres')
 
 
@@ -31,4 +32,4 @@ def drop_postgres_db(dbname):
     """
     Drops a postgres database.
     """
-    sudo('dropdb %s' % dbname, user='postgres')
+    sudo('dropdb \'%s\'' % dbname, user='postgres')
