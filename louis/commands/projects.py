@@ -231,10 +231,10 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
 
 
 def manage_project(command, project_name, project_username, settings_module='production-settings'):
-	"""
-	Call project's manage.py to peform command.
-	"""
-	with settings(user=project_username):
-		project_dir = '/home/%s/%s' % (project_username, project_name)
+    """
+    Call project's manage.py to peform command.
+    """
+    with settings(user=project_username):
+        project_dir = '/home/%s/%s' % (project_username, project_name)
         with cd(project_dir):
-			run('/home/%s/env/bin/python manage.py %s --settings=%s' % (project_username, command, settings_module))
+            run('/home/%s/env/bin/python manage.py %s --settings=%s' % (project_username, command, settings_module))
