@@ -60,6 +60,24 @@ def apache_restart():
     to do a graceful restart.
     """
     sudo('/etc/init.d/apache2 restart')
+    
+    
+def get_arg(explicit, conf_name, default):
+    """
+    Returns the prioritized source for the argument.  First checks if argument 
+    explicitly given; if not, then checks for value in config file; if still not 
+    found, will return default value.
+    """ 
+    if explicit:
+        return explicit
+    elif conf_name:
+        return conf_name
+    else:
+        if default:
+            return default
+        else:
+            print 'Required default value not given for argument'
+            raise Exception
 
 
 def make_fxn(name, ip):
@@ -68,8 +86,11 @@ def make_fxn(name, ip):
         env.hostname = name
         if user:
             env.user = user
-    fxn.__doc__ = """Runs subsequent commands on %s. Takes optional user argument.""" % name
+    fxn.__doc__ = """Runs subsequent commands on %s. Takes optional user """
+                  """argument.""" % name
     return fxn
+
+
 for ip, name in conf.HOSTS:
     if not globals().has_key(name):
         globals()[name] = make_fxn(name, ip)

@@ -10,10 +10,13 @@ import louis.commands
 from louis.commands.users import add_ssh_keys
 
 
-def setup_project_user(project_username):
+def setup_project_user(project_username=None):
     """
     Create a crippled user to hold project-specific files.
     """
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               'project-user')
+    
     with settings(warn_only=True):
         check_user = sudo('grep -e "%s:" /etc/passwd' % project_username)
     if not check_user.failed:
@@ -21,7 +24,8 @@ def setup_project_user(project_username):
     sudo('adduser --gecos %s --disabled-password %s' % ((project_username,)*2))
     sudo('usermod -a -G www-data %s' % project_username)
     for u, s in conf.SYSADMINS.items():
-        add_ssh_keys(target_username=project_username, ssh_key_path=s['ssh_key_path'])
+        add_ssh_keys(target_username=project_username, 
+                     ssh_key_path=s['ssh_key_path'])
     with settings(user=project_username):
         run('mkdir -p .ssh')
         run('ssh-keygen -t rsa -f .ssh/id_rsa -N ""')
@@ -34,12 +38,18 @@ def setup_project_user(project_username):
         sudo('chown %s:www-data log' % project_username)
 
 
-def setup_project_virtualenv(project_username, target_directory='env', site_packages=False):
+def setup_project_virtualenv(project_username=None, target_directory=None, 
+                             site_packages=None):
     """
     Create a clean virtualenv for a project in the target directory. The target
     directory is relative to the project user's home dir and defaults to env ie
     the venv will be installed in /home/project/env/
     """
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               'project-user')
+    target_directory = get_arg(target_directory, conf.TARGET_DIRECTORY, 'env')
+    site_packages = get_arg(site_packages, conf.SITE_PACKAGES, False)
+    
     with settings(user=project_username):
         with cd('/home/%s' % project_username):
             if site_packages:
@@ -50,40 +60,55 @@ def setup_project_virtualenv(project_username, target_directory='env', site_pack
             run('env/bin/easy_install pip')
 
 
-def install_project_requirements(project_username, requirements_path, env_path='env'):
+def install_project_requirements(project_username=None, requirements_path=None, 
+                                 env_path=None):
     """
     Installs a requirements file via pip.
 
     The requirements file path should be relative to the project user's home
 
     directory and it defaults to project_username/deploy/requirements.txt
-    The env path should also be relative to the project user's home directory and
-    defaults to env.
+    The env path should also be relative to the project user's home directory 
+    and defaults to env.
     """
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               'project-user')
+    requirements_path = get_arg(requirements_path, conf.REQUIREMENTS_PATH, 
+                                'deploy/requirements.txt')
+    env_path = get_arg(env_path, conf.ENV_PATH, 'env')
+    
     with settings(user=project_username):
         with cd('/home/%s' % project_username):
             run('%s/bin/pip install -r %s' % (env_path, requirements_path))
 
 
-def setup_project_code(project_name, project_username, git_url, branch='master'):
+def setup_project_code(project_name=None, project_username=None, git_url, 
+                       branch=None):
     """
     Check out the project's code into its home directory. Target directory will
     be relative to project_username's home directory. target directory defaults
     to the value of project_username ie you'll end up with the code in
     /home/project/project/
     """
+    project_name = get_arg(project_name, conf.PROJECT_NAME, 'project')
+    branch = get_arg(branch, conf.BRANCH, 'master')
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               '%s-%s' % (project_name, branch))
+    git_url = get_arg(git_url, conf.GIT_URL, None)
+    
     with cd('/home/%s' % project_username):
         with settings(user=project_username):
             if files.exists(project_name):
-                print(red('Destination path already exists ie the repo has been cloned already.'))
+                print(red('Destination path already exists ie the repo has '  
+                          'cloned already.'))
                 return
             run('git clone %s %s' % (git_url, project_name))
             with cd('%s' % project_name):
                 #run('git submodule update --init') # --recursive')
                 run('git submodule init')
                 run('git submodule update')
-                # checkout and update all remote branches, so that the deployment 
-                # can be any one of them
+                # checkout and update all remote branches, so that the 
+                # deployment can be any one of them
                 branches = run('git branch -r').split('\n')
                 for b in branches:
                     if 'master' in b or 'HEAD' in b:
@@ -91,11 +116,15 @@ def setup_project_code(project_name, project_username, git_url, branch='master')
                         # by default
                         continue
                     r, sep, branch_name = b.strip().rpartition('/')
-                    run('git branch %s --track origin/%s' % (branch_name, branch_name))
+                    run('git branch %s --track origin/%s' % 
+                        (branch_name, branch_name))
                 run('git checkout %s' % branch)
 
 
-def setup_project_apache(project_name, project_username, server_name, server_alias, admin_email, django_settings, media_directory=None, branch='master'):
+def setup_project_apache(project_name=None, project_username=None, 
+                         server_name=None, server_alias=None, admin_email=None, 
+                         settings_module=None, media_directory=None, 
+                         branch=None):
     """
     Configure apache-related settings for the project.
     
@@ -111,8 +140,19 @@ def setup_project_apache(project_name, project_username, server_name, server_ali
     defaults to project_username/media ie you'd end up with
     /home/project/project/media/
     """
-    if not media_directory:
-        media_directory = '%s/media/' % project_name
+    project_name = get_arg(project_name, conf.PROJECT_NAME, 'project')
+    branch = get_arg(branch, conf.BRANCH, 'master')
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               '%s-%s' % (project_name, branch))
+    server_name = get_arg(server_name, conf.SERVER_NAME, 'localhost')
+    server_alias = get_arg(server_alias, conf.SERVER_ALIAS, 
+                           'www.%s' % server_name)
+    admin_email = get_arg(admin_email, conf.ADMIN_EMAIL, 
+                          'root@%s' % server_name)
+    settings_module = get_arg(settings_module, conf.SETTINGS_MODULE, 'settings')
+    media_directory = get_arg(media_directory, conf.MEDIA_DIRECTORY, 
+                              '%s/media/' % project_name)
+
     with cd('/home/%s' % project_username):
         # permissions for media/
         sudo('chgrp www-data -R %s' % media_directory)
@@ -120,10 +160,10 @@ def setup_project_apache(project_name, project_username, server_name, server_ali
     context = {
         'project_name': project_name,
         'project_username': project_username,
-	'admin_email': admin_email,
+        'admin_email': admin_email,
         'server_name': server_name,
         'server_alias': server_alias,
-        'django_settings': django_settings,
+        'settings_module': settings_module,
         'branch': branch,
     }
     # apache config
@@ -131,38 +171,90 @@ def setup_project_apache(project_name, project_username, server_name, server_ali
     for config_path in apache_files.split('\n'):
         d, sep, config_filename = config_path.rpartition('/')
         config_filename, dot, ext = config_filename.rpartition('.')
- 	config_filename = '%s.%s' % (project_username, ext)
+        config_filename = '%s.%s' % (project_username, ext)
         dest_path = '/etc/apache2/sites-available/%s' % config_filename
         if not files.exists(dest_path, use_sudo=True):
-            files.upload_template(config_path, dest_path, context=context, use_sudo=True)
+            files.upload_template(config_path, dest_path, context=context, 
+                                  use_sudo=True)
             sudo('a2ensite %s' % config_filename)
     # wsgi file
     wsgi_files = local('find . -name "*.wsgi"', capture=True)
     for wsgi_path in wsgi_files.split('\n'):
         d, sep, wsgi_filename = wsgi_path.rpartition('/')
         wsgi_filename, dot, ext = wsgi_filename.rpartition('.')
-	wsgi_filename = '%s.%s' % (project_username, ext)
+        wsgi_filename = '%s.%s' % (project_username, ext)
         dest_path = '/home/%s/%s' % (project_username, wsgi_filename)
         if not files.exists(dest_path, use_sudo=True):
-            files.upload_template(wsgi_path, dest_path, use_sudo=True, context=context)
+            files.upload_template(wsgi_path, dest_path, use_sudo=True, 
+                                  context=context)
             sudo('chown %s:%s %s' % (project_username, 'www-data', dest_path))
             sudo('chmod 755 %s' % dest_path)
     sudo('a2enmod rewrite')
     with settings(warn_only=True):
         check_config = sudo('apache2ctl configtest')
     if check_config.failed:
-        print(red('Invalid apache configuration! The requested configuration was installed, but there is a problem with it.'))
+        print(red('Invalid apache configuration! The requested configuration '
+                  'was installed, but there is a problem with it.'))
     else:
-        louis.commands.apache_reload()	
+        louis.commands.apache_reload()
+        
 
+def setup_project_crontab(project_name=None, project_username=None, 
+                          settings_module=None, cron_email=None):
+    """
+    Install crontab under project_username 
+    """
+    project_name = get_arg(project_name, conf.PROJECT_NAME, 'project')
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               '%s-master' % project_name)
+    settings_module = get_arg(settings_module, conf.CRONTAB_SETTINGS_MODULE, 
+                              'settings.py')
+    cron_email = get_arg(cron_email, conf.CRON_EMAIL, 'root@localhost')
+    
+    context = {
+        'project_name': project_name,
+        'project_username': project_username,
+        'cron_email': cron_email,
+        'settings_module': settings_module,
+    }
+    project_dir = '/home/%s/%s' % (project_username, project_name)
+    template_path = '%s/deploy/%s.crontab' % (project_dir, project_name)
+    crontab_path = '%s/deploy/crontab' % (project_dir)
+    files.upload_template(template_path, crontab_path, context=context, 
+                          use_sudo=False)
+    with settings(user=project_username):
+        with cd(project_dir):
+           run('crontab deploy/crontab') 
+ 
 
-def setup_project(project_name, git_url, apache_server_name, apache_server_alias, admin_email='sysadmin@idonethis.com', django_settings='production-settings', project_username=None, branch='master', requirements_path=None):
+def setup_project(project_name=None, git_url=None, apache_server_name=None, 
+                  apache_server_alias=None, admin_email=None, 
+                  settings_module=None, project_username=None, branch=None, 
+                  requirements_path=None, cron_settings_module=None, 
+                  cron_email=None):
     """
-    Creates a user for the project, checks out the code and does basic apache config.
+    Creates a user for the project, checks out the code and does basic apache 
+    config.
     """
+    project_name = get_arg(project_name, conf.PROJECT_NAME, 'project')
+    git_url = get_arg(git_url, conf.GIT_URL, None)
+    apache_server_name = get_arg(apache_server_name, conf.SERVER_NAME, 
+                                 'localhost')
+    apache_server_alias = get_arg(apache_server_alias, conf.SERVER_ALIAS, 
+                           'www.%s' % apache_server_name)
+    admin_email = get_arg(admin_email, conf.ADMIN_EMAIL, 
+                          'root@%s' % apache_server_name)
+    settings_module = get_arg(settings_module, conf.SETTINGS_MODULE, 'settings')
+    branch = get_arg(branch, conf.BRANCH, 'master')
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               '%s-%s' % (project_name, branch))
+    requirements_path = get_arg(requirements_path, conf.REQUIREMENTS_PATH, 
+                                '%s/deploy/requirements.txt' % project_name)
+    cron_settings_module = get_arg(cron_settings_module, 
+                                   conf.CRON_SETTINGS_MODULE, settings_module)
+    cron_email = get_arg(cron_email, conf.CRON_EMAIL, 'root@localhost')
+    
     local_user = local('whoami', capture=True)
-    if not project_username:
-        project_username =  '%s-%s' % (project_name, branch)
     setup_project_user(project_username)
     print(green("Here is the project user's public key:"))
     run('cat /home/%s/.ssh/id_rsa.pub' % project_username)
@@ -170,37 +262,49 @@ def setup_project(project_name, git_url, apache_server_name, apache_server_alias
     prompt(green("Press enter to continue."))
     setup_project_code(project_name, project_username, git_url, branch)
     setup_project_virtualenv(project_username)
-    if not requirements_path:
-        requirements_path = '%s/deploy/requirements.txt' % project_name
     install_project_requirements(project_username, requirements_path)
-    setup_project_apache(project_name, project_username, apache_server_name, apache_server_alias, admin_email, django_settings, branch=branch)
+    setup_project_apache(project_name, project_username, apache_server_name, 
+                         apache_server_alias, admin_email, settings_module, 
+                         branch=branch)
 
     with cd('/home/%s/%s/deploy/logrotate/' % (project_username, project_name)):
         sudo('cat apache2 >> /etc/logrotate.d/apache2')
 
     sudo('mkdir -p /home/%s/log' % (project_username))
-    sudo('chown -R %s:www-data /home/%s/log' % (project_username, project_username))
+    sudo('chown -R %s:www-data /home/%s/log' % 
+         (project_username, project_username))
     sudo('chmod -R 770 /home/%s/log' % project_username)
 
     with cd('/home/%s/%s' % (project_username, project_name)):
         git_head = run('git rev-parse HEAD')
     with cd('/home/%s' % project_username):
-        log_text = 'Initial deploy on %s by %s, HEAD: %s' % (datetime.now(), local_user, git_head)
+        log_text = 'Initial deploy on %s by %s, HEAD: %s' % (datetime.now(), 
+                                                             local_user, 
+                                                             git_head)
         files.append('log/deploy.log', log_text, use_sudo=True)
+    setup_project_crontab(project_name, project_username, cron_settings_module, 
+                          cron_email)
 
-    print(green("""Project setup complete. You may need to patch the virtualenv
-    to install things like mx. You may do so with the patch_virtualenv command."""))
+    print(green("""Project setup complete. You may need to patch the """
+                """virtualenv to install things like mx. You may do so with """
+                """the patch_virtualenv command."""))
 
 
-def delete_project_code(project_name, project_username):
+def delete_project_code(project_name=None, project_username=None):
     """
-    Deletes /home/project_username/target_directory/ target_directory defaults
-    to project_username if not given ie /home/project/project/
+    Deletes /home/project_username/target_directory/
     """
+    project_name = get_arg(project_name, conf.PROJECT_NAME, 'project')
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               '%s-master' % project_name)
+                               
     sudo('rm -rf /home/%s/%s' % (project_username, project_name))
 
 
-def update_project(project_name, project_username=None, branch='master', wsgi_file_path=None, settings_module='production-settings', update_requirements=True):
+def update_project(project_name=None, project_username=None, branch=None, 
+                   wsgi_file_path=None, settings_module=None, 
+                   update_requirements=None, cron_settings_module=None, 
+                   cron_email=None):
     """
     Pull the latest source to a project deployed at target_directory. The
     target_directory is relative to project user's home dir. target_directory
@@ -208,33 +312,56 @@ def update_project(project_name, project_username=None, branch='master', wsgi_fi
     The wsgi path is relative to the target directory and defaults to
     deploy/project_username.wsgi.
     """
+    project_name = get_arg(project_name, conf.PROJECT_NAME, 'project')
+    branch = get_arg(branch, conf.BRANCH, 'master')
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               '%s-%s' % (project_name, branch))
+    wsgi_file_path = get_arg(wsgi_file_path, conf.WSGI_FILE_PATH, 
+                             '/home/%s/%s.wsgi' % (project_username, 
+                                                   project_username))
+    settings_module = get_arg(settings_module, conf.SETTINGS_MODULE, 'settings')
+    update_requirements = get_arg(update_requirements, conf.UPDATE_REQUIREMENTS, 
+                                  True)
+    cron_settings_module = get_arg(cron_settings_module, 
+                                   conf.CRON_SETTINGS_MODULE, settings_module)
+    cron_email = get_arg(cron_email, conf.CRON_EMAIL, 'root@localhost')
+                              
     local_user = local('whoami', capture=True)
-    if not project_username:
-        project_username = '%s-%s' % (project_name, branch)
-    if not wsgi_file_path:
-        wsgi_file_path = '/home/%s/%s.wsgi' % (project_username, project_username)
     with settings(user=project_username):
         project_dir = '/home/%s/%s' % (project_username, project_name)
         with cd(project_dir):
             run('git checkout %s' % branch)
             run('git pull')
             run('git submodule update')
-            run('/home/%s/env/bin/python manage.py migrate --merge --settings=%s' % (project_username, settings_module))
+            run('/home/%s/env/bin/python manage.py migrate '
+                '--merge --settings=%s' % (project_username, settings_module))
             if update_requirements:
-                install_project_requirements(project_username, '%s/deploy/requirements.txt' % project_dir)
+                install_project_requirements(project_username, 
+                                             '%s/deploy/requirements.txt' % 
+                                             project_dir)
             run('touch %s' % wsgi_file_path)
             git_head = run('git rev-parse HEAD')
-            run('crontab deploy/crontab')
+        setup_project_crontab(project_name, project_username, 
+                              cron_settings_module, cron_email) 
         with cd('/home/%s' % project_username):
-            log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), local_user, git_head)
+            log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), 
+                                                         local_user, 
+                                                         git_head)
             files.append('log/deploy.log', log_text)
 
 
-def manage_project(command, project_name, project_username, settings_module='production-settings'):
+def manage_project(command, project_name=None, project_username=None, 
+                   settings_module=None):
     """
     Call project's manage.py to peform command.
     """
+    project_name = get_arg(project_name, conf.PROJECT_NAME, 'project')
+    project_username = get_arg(project_username, conf.PROJECT_USERNAME, 
+                               '%s-master' % project_name)
+    settings_module = get_arg(settings_module, conf.SETTINGS_MODULE, 'settings')
+                   
     with settings(user=project_username):
         project_dir = '/home/%s/%s' % (project_username, project_name)
         with cd(project_dir):
-            run('/home/%s/env/bin/python manage.py %s --settings=%s' % (project_username, command, settings_module))
+            run('/home/%s/env/bin/python manage.py %s --settings=%s' % 
+                (project_username, command, settings_module))
