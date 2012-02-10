@@ -33,10 +33,8 @@ def setup_project_user(project_username=None):
         # so that we don't get a yes/no prompt when checking out repos via ssh
         files.append('.ssh/config', ['Host *', 'StrictHostKeyChecking no'])
         run('mkdir -p log')
-
-    with cd('/home/%s/' % project_username):
-        sudo('chmod 770 log')
-        sudo('chown %s:www-data log' % project_username)
+        run('chmod 770 log')
+        run('chown %s:www-data log' % project_username)
 
 
 def setup_project_virtualenv(project_username=None, target_directory=None, 
@@ -196,7 +194,7 @@ def setup_project_apache(project_name=None, project_username=None,
         
 
 def setup_project_crontab(project_name=None, project_username=None, 
-                          settings_module=None, cron_email=None):
+                          settings_module=None, cron_email=None, install=None):
     """
     Install crontab under project_username 
     """
@@ -206,6 +204,7 @@ def setup_project_crontab(project_name=None, project_username=None,
     settings_module = get_arg(settings_module, 'CRON_SETTINGS_MODULE', 
                               'settings.py')
     cron_email = get_arg(cron_email, 'CRON_EMAIL', 'root@localhost')
+    install = get_arg(install, 'INSTALL_CRONTAB', False)
     
     context = {
         'project_name': project_name,
@@ -220,8 +219,9 @@ def setup_project_crontab(project_name=None, project_username=None,
     with settings(user=project_username):
         files.upload_template(crontab_template, crontab_path, context=context, 
                               use_sudo=False)
-        with cd(project_dir):
-           run('crontab deploy/crontab') 
+        if install:
+            with cd(project_dir):
+                run('crontab deploy/crontab') 
  
 
 def setup_project(project_name=None, git_url=None, apache_server_name=None, 
@@ -266,12 +266,6 @@ def setup_project(project_name=None, git_url=None, apache_server_name=None,
 
     with cd('/home/%s/%s/deploy/logrotate/' % (project_username, project_name)):
         sudo('cat apache2 >> /etc/logrotate.d/apache2')
-
-    sudo('mkdir -p /home/%s/log' % (project_username))
-    sudo('chown -R %s:www-data /home/%s/log' % 
-         (project_username, project_username))
-    sudo('chmod -R 770 /home/%s/log' % project_username)
-
     with cd('/home/%s/%s' % (project_username, project_name)):
         git_head = run('git rev-parse HEAD')
     with cd('/home/%s' % project_username):
@@ -344,7 +338,7 @@ def update_project(project_name=None, project_username=None, branch=None,
             log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), 
                                                          local_user, 
                                                          git_head)
-            files.append('log/deploy.log', log_text)
+            files.append('log/deploy.log', log_text, use_sudo=True)
 
 
 def manage_project(command, project_name=None, project_username=None, 

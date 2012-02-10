@@ -88,5 +88,4 @@ def patch_virtualenv(user, package_path, virtualenv_path='env'):
     with settings(user=user):
         target = ('/home/%s/%s/lib/python2.6/site-packages/' % 
                   (user, virtualenv_path))
-        if not files.exists(target, use_sudo=False):
-            run('ln -s %s %s' % (package_path, target))
+        run('ln -s %s %s' % (package_path, target))
