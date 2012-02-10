@@ -181,7 +181,7 @@ def setup_project_apache(project_name=None, project_username=None,
     wsgi_filename = '%s.wsgi' % project_username
     dest_path = '/home/%s/%s' % (project_username, wsgi_filename)
     if not files.exists(dest_path, use_sudo=True):
-        files.upload_template(wsgi_path, dest_path, use_sudo=True, 
+        files.upload_template(wsgi_template, dest_path, use_sudo=True, 
                               context=context)
         sudo('chown %s:%s %s' % (project_username, 'www-data', dest_path))
         sudo('chmod 755 %s' % dest_path)
