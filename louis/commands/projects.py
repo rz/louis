@@ -228,7 +228,7 @@ def setup_project(project_name=None, git_url=None, apache_server_name=None,
                   apache_server_alias=None, admin_email=None, 
                   settings_module=None, project_username=None, branch=None, 
                   cron_settings_module=None, cron_email=None, 
-                  requirements_path=None):
+                  cront_install=None, requirements_path=None):
     """
     Creates a user for the project, checks out the code and does basic apache 
     config.
@@ -250,6 +250,7 @@ def setup_project(project_name=None, git_url=None, apache_server_name=None,
     cron_settings_module = get_arg(cron_settings_module, 
                                    'CRON_SETTINGS_MODULE', settings_module)
     cron_email = get_arg(cron_email, 'CRON_EMAIL', 'root@localhost')
+    cron_install = get_arg(cron_install, 'INSTALL_CRONTAB', False)
     
     local_user = local('whoami', capture=True)
     setup_project_user(project_username)
@@ -274,7 +275,7 @@ def setup_project(project_name=None, git_url=None, apache_server_name=None,
                                                              git_head)
         files.append('log/deploy.log', log_text, use_sudo=True)
     setup_project_crontab(project_name, project_username, cron_settings_module, 
-                          cron_email)
+                          cron_email, cron_install)
 
     print(green("""Project setup complete. You may need to patch the """
                 """virtualenv to install things like mx. You may do so with """
