@@ -74,10 +74,9 @@ def install_postgres():
     """
     Installs postgres and python mxdatetime.
     """
-    pkgs = ('postgresql', 'python-egenix-mxdatetime')
+    pkgs = ('postgresql-9.1', 'python-egenix-mxdatetime')
     for pkg in pkgs:
         sudo('apt-get -y install %s' % pkg)
-    sudo('apt-get -y install postgresql')
     sudo('apt-get -y build-dep psycopg2')
 
 

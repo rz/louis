@@ -35,6 +35,10 @@ def setup_project_user(project_username=None):
         run('mkdir -p log')
         run('chmod 770 log')
         run('chown %s:www-data log' % project_username)
+        run('touch log/app.log')
+        run('touch log/db.log')
+        run('chmod 664 log/*.log')
+        run('chown %s:www-data log/*.log' % project_username)
 
 
 def setup_project_virtualenv(project_username=None, target_directory=None, 
@@ -228,7 +232,7 @@ def setup_project(project_name=None, git_url=None, apache_server_name=None,
                   apache_server_alias=None, admin_email=None, 
                   settings_module=None, project_username=None, branch=None, 
                   cron_settings_module=None, cron_email=None, 
-                  cront_install=None, requirements_path=None):
+                  install_crontab=None, requirements_path=None):
     """
     Creates a user for the project, checks out the code and does basic apache 
     config.
@@ -250,7 +254,7 @@ def setup_project(project_name=None, git_url=None, apache_server_name=None,
     cron_settings_module = get_arg(cron_settings_module, 
                                    'CRON_SETTINGS_MODULE', settings_module)
     cron_email = get_arg(cron_email, 'CRON_EMAIL', 'root@localhost')
-    cron_install = get_arg(cron_install, 'INSTALL_CRONTAB', False)
+    cron_install = get_arg(install_crontab, 'INSTALL_CRONTAB', False)
     
     local_user = local('whoami', capture=True)
     setup_project_user(project_username)
