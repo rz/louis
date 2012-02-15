@@ -6,7 +6,8 @@ from louis import conf
 
 def add_ssh_keys(target_username, ssh_key_path):
     """
-    cats the file at ssh_key_path (local) to the target username's authorized_keys.
+    cats the file at ssh_key_path (local) to the target username's 
+    authorized_keys.
     """
     with cd('/home/%s' % target_username):
         sudo('mkdir -p .ssh')
@@ -63,5 +64,3 @@ def config_sudo():
            '# They can run any command as root with no password',
            '%admin ALL=(ALL) NOPASSWD: ALL']
     files.append('/etc/sudoers', txt, use_sudo=True)
-
-

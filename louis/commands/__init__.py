@@ -62,14 +62,18 @@ def apache_restart():
     sudo('/etc/init.d/apache2 restart')
 
 
+
 def make_fxn(name, ip):
     def fxn(user=None):
         env.hosts = [ip]
         env.hostname = name
         if user:
             env.user = user
-    fxn.__doc__ = """Runs subsequent commands on %s. Takes optional user argument.""" % name
+    fxn.__doc__ = ("""Runs subsequent commands on %s. Takes optional user """
+                  """argument.""" % name)
     return fxn
+
+
 for ip, name in conf.HOSTS:
     if not globals().has_key(name):
         globals()[name] = make_fxn(name, ip)
