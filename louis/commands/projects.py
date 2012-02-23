@@ -339,11 +339,11 @@ def update_project(project_name=None, project_username=None, branch=None,
             git_head = run('git rev-parse HEAD')
         setup_project_crontab(project_name, project_username, 
                               cron_settings_module, cron_email) 
-        with cd('/home/%s' % project_username):
-            log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), 
-                                                         local_user, 
-                                                         git_head)
-            files.append('log/deploy.log', log_text, use_sudo=True)
+    with cd('/home/%s' % project_username):
+        log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), 
+                                                     local_user, 
+                                                     git_head)
+        files.append('log/deploy.log', log_text, use_sudo=True)
 
 
 def manage_project(command, project_name=None, project_username=None, 
