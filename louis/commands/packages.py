@@ -78,6 +78,18 @@ def install_postgres():
     for pkg in pkgs:
         sudo('apt-get -y install %s' % pkg)
     sudo('apt-get -y build-dep psycopg2')
+    
+
+def install_collectd():
+    """
+    Installs collectd and configures plugins and thresholds
+    """
+    pkgs = ('collectd')
+    for pkg in pkgs:
+        sudo('apt-get -y install %s' % pkg)
+    collectd_config = '/etc/collectd/collectd.conf'
+    collectd_thresholds = '/etc/collectd/thresholds.conf'
+    files.sed(collectd_config, '', '', limit='', user_sudo=True)
 
 
 def patch_virtualenv(user, package_path, virtualenv_path='env'):
