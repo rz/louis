@@ -156,10 +156,11 @@ def setup_project_apache(project_name=None, project_username=None,
     media_directory = get_arg(media_directory, 'MEDIA_DIRECTORY', 
                               '%s/media/' % project_name)
 
-    with cd('/home/%s' % project_username):
-        # permissions for media/
-        sudo('chgrp www-data -R %s' % media_directory)
-        sudo('chmod g+w %s' % media_directory)
+    # permissions for media/
+    sudo('chgrp www-data -R /home/%s/%s' % 
+         (project_username, media_directory))
+    sudo('chmod g+w /home/%s/%s' % (project_username, media_directory))
+
     context = {
         'project_name': project_name,
         'project_username': project_username,
@@ -174,20 +175,21 @@ def setup_project_apache(project_name=None, project_username=None,
                             capture=True).strip()
     apache_filename = '%s.apache2' % project_username
     dest_path = '/etc/apache2/sites-available/%s' % apache_filename
-    if not files.exists(dest_path, use_sudo=True):
-        files.upload_template(apache_template, dest_path, context=context, 
-                              use_sudo=True)
+    files.upload_template(apache_template, dest_path, context=context, 
+                          use_sudo=True)
+    with settings(warn_only=True):
         sudo('a2ensite %s' % apache_filename)
+
     # wsgi file
     wsgi_template = local('find . -name "template.wsgi"', capture=True).strip()
     wsgi_filename = '%s.wsgi' % project_username
     dest_path = '/home/%s/%s' % (project_username, wsgi_filename)
-    if not files.exists(dest_path, use_sudo=True):
-        files.upload_template(wsgi_template, dest_path, use_sudo=True, 
-                              context=context)
-        sudo('chown %s:%s %s' % (project_username, 'www-data', dest_path))
-        sudo('chmod 755 %s' % dest_path)
-    sudo('a2enmod rewrite')
+    files.upload_template(wsgi_template, dest_path, use_sudo=True, 
+                          context=context)
+    sudo('chown %s:%s %s' % (project_username, 'www-data', dest_path))
+    sudo('chmod 755 %s' % dest_path)
+    with settings(warn_only=True):
+        sudo('a2enmod rewrite')
     with settings(warn_only=True):
         check_config = sudo('apache2ctl configtest')
     if check_config.failed:
@@ -264,22 +266,15 @@ def setup_project(project_name=None, git_url=None, apache_server_name=None,
     prompt(green("Press enter to continue."))
     setup_project_code(git_url, project_name, project_username, branch)
     setup_project_virtualenv(project_username)
-    install_project_requirements(project_username, requirements_path)
-    setup_project_apache(project_name, project_username, apache_server_name, 
-                         apache_server_alias, admin_email, settings_module, 
-                         branch=branch)
 
     with cd('/home/%s/%s/deploy/logrotate/' % (project_username, project_name)):
         sudo('cat apache2 >> /etc/logrotate.d/apache2')
-    with cd('/home/%s/%s' % (project_username, project_name)):
-        git_head = run('git rev-parse HEAD')
-    with cd('/home/%s' % project_username):
-        log_text = 'Initial deploy on %s by %s, HEAD: %s' % (datetime.now(), 
-                                                             local_user, 
-                                                             git_head)
-        files.append('log/deploy.log', log_text, use_sudo=True)
-    setup_project_crontab(project_name, project_username, cron_settings_module, 
-                          cron_email, cron_install)
+    update_project(project_name=project_name, project_username=project_username, 
+                   branch=branch, settings_module=settings_module, 
+                   cron_settings_module=cron_settings_module, 
+                   cron_email=cron_email, apache_server_name=apache_server_name,
+                   apache_server_alias=apache_server_alias, 
+                   admin_email=admin_email)
 
     print(green("""Project setup complete. You may need to patch the """
                 """virtualenv to install things like mx. You may do so with """
@@ -298,47 +293,52 @@ def delete_project_code(project_name=None, project_username=None):
 
 
 def update_project(project_name=None, project_username=None, branch=None, 
-                   wsgi_file_path=None, settings_module=None, 
-                   update_requirements=None, cron_settings_module=None, 
-                   cron_email=None):
+                   settings_module=None, 
+                   cron_settings_module=None, cron_email=None, 
+                   apache_server_name=None, apache_server_alias=None, 
+                   admin_email=None):
     """
-    Pull the latest source to a project deployed at target_directory. The
+    Pull the latest source to a project deployed at target_directory. Also 
+    update requirements, apache and wsgi files, and crontab.  The
     target_directory is relative to project user's home dir. target_directory
     defaults to project_username ie /home/project/project/
-    The wsgi path is relative to the target directory and defaults to
-    deploy/project_username.wsgi.
     """
     project_name = get_arg(project_name, 'PROJECT_NAME', 'project')
     branch = get_arg(branch, 'BRANCH', 'master')
     project_username = get_arg(project_username, 'PROJECT_USERNAME', 
                                '%s-%s' % (project_name, branch))
-    wsgi_file_path = get_arg(wsgi_file_path, 'WSGI_FILE_PATH', 
-                             '/home/%s/%s.wsgi' % (project_username, 
-                                                   project_username))
     settings_module = get_arg(settings_module, 'SETTINGS_MODULE', 'settings')
-    update_requirements = get_arg(update_requirements, 'UPDATE_REQUIREMENTS', 
-                                  True)
     cron_settings_module = get_arg(cron_settings_module, 
                                    'CRON_SETTINGS_MODULE', settings_module)
     cron_email = get_arg(cron_email, 'CRON_EMAIL', 'root@localhost')
+    apache_server_name = get_arg(apache_server_name, 'SERVER_NAME', 
+                                 'localhost')
+    apache_server_alias = get_arg(apache_server_alias, 'SERVER_ALIAS', 
+                                  'www.%s' % apache_server_name)
+    admin_email = get_arg(admin_email, 'ADMIN_EMAIL', 
+                          'root@%s' % apache_server_name)
                               
     local_user = local('whoami', capture=True)
-    with settings(user=project_username):
-        project_dir = '/home/%s/%s' % (project_username, project_name)
-        with cd(project_dir):
+
+    project_dir = '/home/%s/%s' % (project_username, project_name)
+    with cd(project_dir):
+        with settings(user=project_username):
             run('git checkout %s' % branch)
             run('git pull')
             run('git submodule update')
             run('/home/%s/env/bin/python manage.py migrate '
                 '--merge --settings=%s' % (project_username, settings_module))
-            if update_requirements:
-                install_project_requirements(project_username, 
-                                             '%s/deploy/requirements.txt' % 
-                                             project_dir)
-            run('touch %s' % wsgi_file_path)
-            git_head = run('git rev-parse HEAD')
+            install_project_requirements(project_username, 
+                                         '%s/deploy/requirements.txt' % 
+                                         project_dir)
+        setup_project_apache(project_name, project_username, 
+                             apache_server_name, apache_server_alias, 
+                             admin_email, settings_module, branch=branch)
         setup_project_crontab(project_name, project_username, 
-                              cron_settings_module, cron_email) 
+                              cron_settings_module, cron_email)
+        with settings(user=project_username):
+            run('find . -name \'*.pyc\' | xargs rm')
+            git_head = run('git rev-parse HEAD')
     with cd('/home/%s' % project_username):
         log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), 
                                                      local_user, 
