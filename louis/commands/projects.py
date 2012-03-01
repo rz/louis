@@ -274,7 +274,8 @@ def setup_project(project_name=None, git_url=None, apache_server_name=None,
                    cron_settings_module=cron_settings_module, 
                    cron_email=cron_email, apache_server_name=apache_server_name,
                    apache_server_alias=apache_server_alias, 
-                   admin_email=admin_email)
+                   admin_email=admin_email,
+                   initial_deployment=True)
 
     print(green("""Project setup complete. You may need to patch the """
                 """virtualenv to install things like mx. You may do so with """
@@ -296,7 +297,8 @@ def update_project(project_name=None, project_username=None, branch=None,
                    settings_module=None, 
                    cron_settings_module=None, cron_email=None, 
                    apache_server_name=None, apache_server_alias=None, 
-                   admin_email=None):
+                   admin_email=None,
+                   initial_deployment=False):
     """
     Pull the latest source to a project deployed at target_directory. Also 
     update requirements, apache and wsgi files, and crontab.  The
@@ -326,11 +328,13 @@ def update_project(project_name=None, project_username=None, branch=None,
             run('git checkout %s' % branch)
             run('git pull')
             run('git submodule update')
-            run('/home/%s/env/bin/python manage.py migrate '
-                '--merge --settings=%s' % (project_username, settings_module))
             install_project_requirements(project_username, 
-                                         '%s/deploy/requirements.txt' % 
-                                         project_dir)
+                             '%s/deploy/requirements.txt' % 
+                             project_dir)
+            if not initial_deployment:
+                run('/home/%s/env/bin/python manage.py migrate '
+                    '--merge --settings=%s' % 
+                    (project_username, settings_module))
         setup_project_apache(project_name, project_username, 
                              apache_server_name, apache_server_alias, 
                              admin_email, settings_module, branch=branch)
