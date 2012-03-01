@@ -1,7 +1,6 @@
 from louis.commands.packages import *
 from louis.commands.users import *
 from louis.commands.projects import *
-from louis.commands.projects import *
 from louis.commands.databases import *
 from louis.commands.solr import *
 from louis import conf
