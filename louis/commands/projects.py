@@ -341,7 +341,7 @@ def update_project(project_name=None, project_username=None, branch=None,
         setup_project_crontab(project_name, project_username, 
                               cron_settings_module, cron_email)
         with settings(user=project_username):
-            run('find . -name \'*.pyc\' | xargs rm')
+            run('find -L . -name \'*.pyc\' | xargs -r rm')
             git_head = run('git rev-parse HEAD')
     with cd('/home/%s' % project_username):
         log_text = 'Deploy on %s by %s. HEAD: %s' % (datetime.now(), 
