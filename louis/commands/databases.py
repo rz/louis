@@ -9,9 +9,10 @@ def create_postgres_user(username, password):
     """
     Creates a plain postgres user: nosuperuser, nocreaterole, createdb.
     """
-    psql_string = ('CREATE ROLE %s PASSWORD \'%s\' NOSUPERUSER CREATEDB '
-                  'NOCREATEROLE INHERIT LOGIN;' % (username, password))
-    sudo('echo "%s" | psql' % psql_string, user='postgres')
+    psql_string = ('CREATE ROLE %s PASSWORD \'$sql_pwd\' NOSUPERUSER CREATEDB '
+                  'NOCREATEROLE INHERIT LOGIN;' % (username))
+    sudo('export sql_pwd=\'%s\'; echo "%s" | psql; export sql_pwd=""' % 
+         (password, psql_string), user='postgres', shell=True)
 
 
 def delete_postgres_user(username):

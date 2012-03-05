@@ -6,10 +6,11 @@ from louis.commands.solr import *
 from louis import conf
 
 
-def init_server(apache=True, postgres=True):
+def init_server(swap_size=None, apache=True, postgres=True):
     """
     Runs basic configuration of a virgin server.
     """
+    setup_swap(swap_size)
     setup_hosts()
     update()
     install_debconf_seeds()
@@ -22,6 +23,20 @@ def init_server(apache=True, postgres=True):
     if postgres:
         install_postgres()
     config_sshd()
+
+
+def setup_swap(size=None):
+    """
+    Creates swapfile and adds to fstab.  Size is in MB.
+    """
+    if size:
+        size = size * 1024
+        sudo('dd if=/dev/zero of=/swapfile bs=1024 count=%s' % size)
+        sudo('mkswap /swapfile')
+        sudo('chown root:root /swapfile')
+        sudo('chmod 0600 /swapfile')
+        sudo('swapon /swapfile')
+        sudo('echo \"/swapfile swap swap defaults 0 0\" >>/etc/fstab')
 
 
 def setup_hosts():
