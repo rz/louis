@@ -82,7 +82,7 @@ def install_project_requirements(project_username=None, requirements_path=None,
 
     with settings(user=project_username):
         with cd('/home/%s' % project_username):
-            run('%s/bin/pip install -r %s' % (env_path, requirements_path))
+            run('%s/bin/pip install -M -r %s' % (env_path, requirements_path))
 
 
 def setup_project_code(git_url, project_name=None, project_username=None,
