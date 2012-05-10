@@ -49,7 +49,8 @@ def config_sshd():
     users created with ssh keys before running this."""
     sshd_config = '/etc/ssh/sshd_config'
     files.sed(sshd_config, 'yes', 'no', limit='PermitRootLogin', use_sudo=True)
-    files.sed(sshd_config, '#PasswordAuthentication yes', 'PasswordAuthentication no', use_sudo=True)
+    files.sed(sshd_config, '#PasswordAuthentication yes', 
+              'PasswordAuthentication no', use_sudo=True)
     sudo('/etc/init.d/ssh restart')
 
 
@@ -61,7 +62,8 @@ def install_apache():
     for pkg in pkgs:
         sudo('apt-get -y install %s' % pkg)
     sudo('virtualenv --no-site-packages /var/www/virtualenv')
-    sudo('echo "WSGIPythonHome /var/www/virtualenv" >> /etc/apache2/conf.d/wsgi-virtualenv')
+    sudo('echo "WSGIPythonHome /var/www/virtualenv" >> '
+         '/etc/apache2/conf.d/wsgi-virtualenv')
     sudo('a2enmod ssl')
     files.append('ServerName localhost', '/etc/apache2/httpd.conf',
                  use_sudo=True)
@@ -72,11 +74,22 @@ def install_postgres():
     """
     Installs postgres and python mxdatetime.
     """
-    pkgs = ('postgresql', 'python-egenix-mxdatetime')
+    pkgs = ('postgresql-9.1', 'python-egenix-mxdatetime')
     for pkg in pkgs:
         sudo('apt-get -y install %s' % pkg)
-    sudo('apt-get -y install postgresql')
     sudo('apt-get -y build-dep psycopg2')
+    
+
+def install_collectd():
+    """
+    Installs collectd and configures plugins and thresholds
+    """
+    pkgs = ('collectd')
+    for pkg in pkgs:
+        sudo('apt-get -y install %s' % pkg)
+    collectd_config = '/etc/collectd/collectd.conf'
+    collectd_thresholds = '/etc/collectd/thresholds.conf'
+    files.sed(collectd_config, '', '', limit='', user_sudo=True)
 
 
 def patch_virtualenv(user, package_path, virtualenv_path='env'):
@@ -84,7 +97,6 @@ def patch_virtualenv(user, package_path, virtualenv_path='env'):
     Symlinks package_path in virtual env's site-packages.
     """
     with settings(user=user):
-        target = '/home/%s/%s/lib/python2.6/site-packages/' % (user, virtualenv_path)
+        target = ('/home/%s/%s/lib/python2.6/site-packages/' % 
+                  (user, virtualenv_path))
         run('ln -s %s %s' % (package_path, target))
-
-

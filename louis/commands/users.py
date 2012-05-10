@@ -6,12 +6,13 @@ from louis import conf
 
 def add_ssh_keys(target_username, ssh_key_path):
     """
-    cats the file at ssh_key_path (local) to the target username's authorized_keys.
+    cats the file at ssh_key_path (local) to the target username's 
+    authorized_keys.
     """
     with cd('/home/%s' % target_username):
         sudo('mkdir -p .ssh')
-        put(ssh_key_path, 'keys')
-        sudo('cat ~/keys >> .ssh/authorized_keys')
+        put(ssh_key_path, 'keys', use_sudo=True)
+        sudo('cat keys >> .ssh/authorized_keys')
         sudo('chown -R %s:%s .ssh/' % (target_username, target_username))
         sudo('rm -f keys')
 
@@ -62,6 +63,4 @@ def config_sudo():
     txt = ['# Members of the admin group may gain root privileges',
            '# They can run any command as root with no password',
            '%admin ALL=(ALL) NOPASSWD: ALL']
-    files.append(txt, '/etc/sudoers', use_sudo=True)
-
-
+    files.append('/etc/sudoers', txt, use_sudo=True)

@@ -1,15 +1,16 @@
 from louis.commands.packages import *
 from louis.commands.users import *
 from louis.commands.projects import *
-from louis.commands.projects import *
 from louis.commands.databases import *
+from louis.commands.solr import *
 from louis import conf
 
 
-def init_server(apache=True, postgres=True):
+def init_server(swap_size=None, apache=True, postgres=True):
     """
     Runs basic configuration of a virgin server.
     """
+    setup_swap(swap_size)
     setup_hosts()
     update()
     set_timezone()
@@ -23,6 +24,20 @@ def init_server(apache=True, postgres=True):
     if postgres:
         install_postgres()
     config_sshd()
+
+
+def setup_swap(size=None):
+    """
+    Creates swapfile and adds to fstab.  Size is in MB.
+    """
+    if size:
+        size = size * 1024
+        sudo('dd if=/dev/zero of=/swapfile bs=1024 count=%s' % size)
+        sudo('mkswap /swapfile')
+        sudo('chown root:root /swapfile')
+        sudo('chmod 0600 /swapfile')
+        sudo('swapon /swapfile')
+        sudo('echo \"/swapfile swap swap defaults 0 0\" >>/etc/fstab')
 
 
 def setup_hosts():
@@ -40,7 +55,7 @@ def setup_hosts():
     #import re
     #assert(re.search(r'^(\d{0,3}\.){3}\d{0,3}$', env.host) is not None)
     #files.append("%(host)s\t%(hostname)s" % env, '/etc/hosts', use_sudo=True)
-    files.append("127.0.1.1\t%s" % env.hostname, '/etc/hosts', use_sudo=True)
+    files.append('/etc/hosts', "127.0.1.1\t%s" % env.hostname, use_sudo=True)
     sudo("hostname %s" % env.hostname)
     sudo('echo "%s" > /etc/hostname' % env.hostname)
 
@@ -66,14 +81,18 @@ def apache_restart():
     sudo('/etc/init.d/apache2 restart')
 
 
+
 def make_fxn(name, ip):
     def fxn(user=None):
         env.hosts = [ip]
         env.hostname = name
         if user:
             env.user = user
-    fxn.__doc__ = """Runs subsequent commands on %s. Takes optional user argument.""" % name
+    fxn.__doc__ = ("""Runs subsequent commands on %s. Takes optional user """
+                  """argument.""" % name)
     return fxn
+
+
 for ip, name in conf.HOSTS:
     if not globals().has_key(name):
         globals()[name] = make_fxn(name, ip)
