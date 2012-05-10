@@ -297,6 +297,7 @@ def update_project(project_name=None, project_username=None, branch=None,
                    settings_module=None,
                    cron_settings_module=None, cron_email=None,
                    apache_server_name=None, apache_server_alias=None,
+                   do_update_apache=True,
                    admin_email=None,
                    initial_deployment=False):
     """
@@ -335,9 +336,10 @@ def update_project(project_name=None, project_username=None, branch=None,
                 run('/home/%s/env/bin/python manage.py migrate '
                     '--merge --settings=%s' %
                     (project_username, settings_module))
-        setup_project_apache(project_name, project_username,
-                             apache_server_name, apache_server_alias,
-                             admin_email, settings_module, branch=branch)
+        if do_update_apache:
+            setup_project_apache(project_name, project_username,
+                apache_server_name, apache_server_alias, admin_email,
+                settings_module, branch=branch)
         setup_project_crontab(project_name, project_username,
                               cron_settings_module, cron_email)
         with settings(user=project_username):
