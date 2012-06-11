@@ -190,6 +190,7 @@ def setup_project_apache(project_name=None, project_username=None,
     sudo('chmod 755 %s' % dest_path)
     with settings(warn_only=True):
         sudo('a2enmod rewrite')
+        sudo('a2enmod headers')
     with settings(warn_only=True):
         check_config = sudo('apache2ctl configtest')
     if check_config.failed:
