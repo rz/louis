@@ -5,6 +5,9 @@ from datetime import datetime
 from fabric.api import run, put, sudo, env, cd, local, prompt, settings
 from fabric.contrib import files
 from fabric.colors import green, red
+
+import pip
+
 from louis import conf
 from louis.utils import get_arg
 import louis.commands
@@ -84,6 +87,22 @@ def install_project_requirements(project_username=None, requirements_path=None,
         with cd('/home/%s' % project_username):
             run('%s/bin/pip install -M -r %s' % (env_path, requirements_path))
 
+def upgrade_project_packages(project_username=None, env_path=None):
+    """
+    Upgrades installed python packages via pip.
+
+    The env path should be relative to the project user's home directory
+    and defaults to env.
+    """
+    project_username = get_arg(project_username, 'PROJECT_USERNAME',
+                               'project-user')
+    env_path = get_arg(env_path, 'ENV_PATH', 'env')
+
+    with settings(user=project_username):
+        with cd('/home/%s' % project_username):
+            for dist in pip.get_installed_distributions():
+            run('%s/bin/pip install --upgrade %s' \
+                % (env_path, dist.project_name))
 
 def setup_project_code(git_url, project_name=None, project_username=None,
                        branch=None):
@@ -334,6 +353,7 @@ def update_project(project_name=None, project_username=None, branch=None,
                              '%s/deploy/requirements.txt' %
                              project_dir)
             if not initial_deployment:
+                upgrade_project_packages(project_username):
                 run('/home/%s/env/bin/python manage.py migrate '
                     '--merge --settings=%s' %
                     (project_username, settings_module))
