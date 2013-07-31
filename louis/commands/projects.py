@@ -127,7 +127,7 @@ def setup_project_code(git_url, project_name=None, project_username=None,
 def setup_project_apache(project_name=None, project_username=None,
                          server_name=None, server_alias=None, admin_email=None,
                          settings_module=None, media_directory=None,
-                         branch=None):
+                         branch=None, git_head=None):
     """
     Configure apache-related settings for the project.
 
@@ -145,6 +145,7 @@ def setup_project_apache(project_name=None, project_username=None,
     """
     project_name = get_arg(project_name, 'PROJECT_NAME', 'project')
     branch = get_arg(branch, 'BRANCH', 'master')
+    git_head = get_arg(git_head, 'CURRENT_HEAD', '')
     project_username = get_arg(project_username, 'PROJECT_USERNAME',
                                '%s-%s' % (project_name, branch))
     server_name = get_arg(server_name, 'SERVER_NAME', 'localhost')
@@ -169,6 +170,7 @@ def setup_project_apache(project_name=None, project_username=None,
         'server_alias': server_alias,
         'settings_module': settings_module,
         'branch': branch,
+        'git_head': git_head,
     }
     # apache config
     apache_template = local('find . -name "template.apache2"',
