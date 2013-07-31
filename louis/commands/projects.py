@@ -5,6 +5,9 @@ from datetime import datetime
 from fabric.api import run, put, sudo, env, cd, local, prompt, settings
 from fabric.contrib import files
 from fabric.colors import green, red
+
+import pip
+
 from louis import conf
 from louis.utils import get_arg
 import louis.commands
@@ -64,15 +67,17 @@ def setup_project_virtualenv(project_username=None, target_directory=None,
 
 
 def install_project_requirements(project_username=None, requirements_path=None,
-                                 env_path=None):
+                                 env_path=None, update_packages=False):
     """
     Installs a requirements file via pip.
 
     The requirements file path should be relative to the project user's home
-
     directory and it defaults to project_username/deploy/requirements.txt
     The env path should also be relative to the project user's home directory
     and defaults to env.
+
+    If update_packages is True, the packages already installed are updated if
+    if necessary.
     """
     project_username = get_arg(project_username, 'PROJECT_USERNAME',
                                'project-user')
@@ -82,8 +87,11 @@ def install_project_requirements(project_username=None, requirements_path=None,
 
     with settings(user=project_username):
         with cd('/home/%s' % project_username):
-            run('%s/bin/pip install -M -r %s' % (env_path, requirements_path))
-
+            if update_packages:
+                run('%s/bin/pip install --update -M -r %s' % \
+                    (env_path, requirements_path))
+            else:
+                run('%s/bin/pip install -M -r %s' % (env_path, requirements_path))
 
 def setup_project_code(git_url, project_name=None, project_username=None,
                        branch=None):

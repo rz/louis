@@ -62,6 +62,7 @@ def install_apache():
     for pkg in pkgs:
         sudo('apt-get -y install %s' % pkg)
     sudo('virtualenv --no-site-packages /var/www/virtualenv')
+    sudo('echo ServerName $HOSTNAME > /etc/apache2/conf.d/fqdn')
     sudo('echo "WSGIPythonHome /var/www/virtualenv" >> '
          '/etc/apache2/conf.d/wsgi-virtualenv')
     sudo('a2enmod ssl')
