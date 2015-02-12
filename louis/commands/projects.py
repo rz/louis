@@ -310,7 +310,8 @@ def update_project(project_name=None, project_username=None, branch=None,
                    apache_server_name=None, apache_server_alias=None,
                    do_update_apache=True,
                    admin_email=None,
-                   initial_deployment=False):
+                   initial_deployment=False,
+                   do_migrate=False):
     """
     Pull the latest source to a project deployed at target_directory. Also
     update requirements, apache and wsgi files, and crontab.  The
@@ -343,7 +344,7 @@ def update_project(project_name=None, project_username=None, branch=None,
             install_project_requirements(project_username,
                              '%s/deploy/requirements.txt' %
                              project_dir)
-            if not initial_deployment:
+            if not initial_deployment and do_migrate:
                 run('/home/%s/env/bin/python manage.py migrate '
                     '--merge --settings=%s' %
                     (project_username, settings_module))
